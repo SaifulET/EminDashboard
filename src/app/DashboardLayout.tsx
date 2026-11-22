@@ -6,19 +6,26 @@ import Navbar from "@/components/common/Navbar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useAuthStore } from "@/store/auth-store";
+import { apiRequest, SessionExpiredError } from "@/lib/api";
 
 const subscribeToHydration = () => () => {};
 const getClientHydrationSnapshot = () => true;
 const getServerHydrationSnapshot = () => false;
 
+type MeResponse = {
+  isAdmin?: boolean;
+};
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const token = useAuthStore((state) => state.token);
+  const clearSession = useAuthStore((state) => state.logout);
   const isHydrated = useSyncExternalStore(subscribeToHydration, getClientHydrationSnapshot, getServerHydrationSnapshot);
   const [defaultOpen, setDefaultOpen] = useState(true);
+  const [adminVerified, setAdminVerified] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(false);
 
-  // Check if current route is an auth route
   const isAuthRoute =
     pathname.startsWith("/login") ||
     pathname.startsWith("/forgot-password") ||
@@ -28,7 +35,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const mustSignIn = isHydrated && !token && !isAuthRoute;
 
   useEffect(() => {
-    // Get sidebar state from cookie
     const sidebarState = document.cookie
       .split("; ")
       .find((row) => row.startsWith("sidebar_state="))
@@ -42,13 +48,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [mustSignIn, pathname, router]);
 
-  // If auth route, render children without sidebar/navbar
+  useEffect(() => {
+    if (!isHydrated || !token || isAuthRoute) {
+      setAdminVerified(false);
+      return;
+    }
+    let cancelled = false;
+    setCheckingAdmin(true);
+    void apiRequest<MeResponse>("/auth/me")
+      .then((me) => {
+        if (cancelled) return;
+        if (!me?.isAdmin) {
+          if (typeof clearSession === "function") clearSession();
+          router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+          setAdminVerified(false);
+          return;
+        }
+        setAdminVerified(true);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        if (!(error instanceof SessionExpiredError) && typeof clearSession === "function") {
+          clearSession();
+        }
+        router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+        setAdminVerified(false);
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingAdmin(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [clearSession, isAuthRoute, isHydrated, pathname, router, token]);
+
   if (isAuthRoute) {
     return <>{children}</>;
   }
 
-  // Until the session is known (and while redirecting), render nothing so pages never call the API without a token.
-  if (!isHydrated || !token) {
+  if (!isHydrated || !token || checkingAdmin || !adminVerified) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -56,7 +94,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Otherwise, render with sidebar and navbar
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <AppSidebar />

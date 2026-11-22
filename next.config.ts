@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   allowedDevOrigins: ["*.trycloudflare.com"],
   experimental: {
     // Turbopack's on-disk dev cache in Next 16.1.x panics on this Windows setup with "Access is denied (os error 5)".

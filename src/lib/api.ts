@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/store/auth-store";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4003";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://api.odaboo.ch";
 
 export type ApiPage<T> = {
   items: T[];

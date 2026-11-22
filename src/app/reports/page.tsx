@@ -99,7 +99,12 @@ export default function AdminReportsPage() {
   };
 
   useEffect(() => {
-    const socket = io(API_URL, { transports: ["websocket", "polling"], withCredentials: true });
+    const token = typeof window !== "undefined" ? window.localStorage.getItem("auth_token") : null;
+    const socket = io(API_URL, {
+      transports: ["websocket", "polling"],
+      withCredentials: true,
+      auth: token ? { token } : undefined,
+    });
     socket.on("connect", () => {
       setLive(true);
       socket.emit("joinSupportDesk");
@@ -159,9 +164,6 @@ export default function AdminReportsPage() {
         method: "POST",
         body: JSON.stringify({
           message: text,
-          senderRole: "admin",
-          ...(adminId ? { senderId: adminId } : {}),
-          senderName: adminName || "Odaboo Support",
         }),
       });
       replaceTicket(result.ticket);

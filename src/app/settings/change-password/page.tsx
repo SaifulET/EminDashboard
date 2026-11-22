@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/context/LanguageContext";
 import { redirectToLogin } from "@/lib/api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4003";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://api.odaboo.ch";
 
 /**
  * The backend answers a wrong current password with 401, which apiRequest would treat as an

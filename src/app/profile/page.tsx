@@ -12,7 +12,7 @@ import { formatDate, initials, useApi } from "@/lib/admin-api";
 import { DataState } from "@/components/common/DataState";
 import { useAuthStore } from "@/store/auth-store";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4003";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://api.odaboo.ch";
 
 type Me = {
   _id: string;
